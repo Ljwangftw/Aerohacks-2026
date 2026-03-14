@@ -1,6 +1,6 @@
 """Quick test to verify all graduated safety zones work correctly."""
 import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from src.control.safety import SafetyMonitor, SafetyZone
 from src.utils.config import load_config

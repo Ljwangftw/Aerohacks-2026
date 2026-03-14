@@ -16,7 +16,7 @@ import sys
 import argparse
 from pynput import keyboard as kb
 
-from safety import trigger_stop, register_signal_handlers, is_stopped
+from safety import trigger_stop, register_signal_handlers
 from controller import run_hover
 
 

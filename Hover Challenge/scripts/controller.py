@@ -22,13 +22,13 @@ if DRY_RUN:
     from test_drone_rc import (
         set_mode, set_pitch, set_roll, set_yaw,
         manual_thrusts, set_p_gain, set_i_gain, set_d_gain,
-        reset_integral, get_mode
+        reset_integral
     )
 else:
     from drone_rc import (
         set_mode, set_pitch, set_roll, set_yaw,
         manual_thrusts, set_p_gain, set_i_gain, set_d_gain,
-        reset_integral, get_mode
+        reset_integral
     )
 
 
