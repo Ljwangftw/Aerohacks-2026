@@ -1,4 +1,4 @@
-# Challenge 2 — Drone Hover & Turbulence Resistance
+# Drone Hover & Turbulence Resistance
 
 External vision-based stabilization controller for the ESP32-S2-Drone V1.2.
 
