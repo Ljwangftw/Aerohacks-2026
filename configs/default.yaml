@@ -1,0 +1,154 @@
+# =============================================================================
+# AeroHover Default Configuration
+# =============================================================================
+
+# ===== Camera Settings =====
+cameras:
+  left:
+    id: 0                      # OpenCV device index
+    width: 640
+    height: 480
+    fps: 30
+  right:
+    id: 1
+    width: 640
+    height: 480
+    fps: 30
+  warmup_frames: 30            # discard this many frames on startup
+
+# ===== LED Detection =====
+detection:
+  color_space: "hsv"
+  # Tune these with scripts/tune_hsv.py at the venue
+  hsv_lower: [35, 100, 100]   # Green LED default [H, S, V]
+  hsv_upper: [85, 255, 255]
+  blur_kernel: 5               # Gaussian blur kernel size (odd number)
+  min_contour_area: 30         # pixels^2 — reject smaller blobs
+  max_contour_area: 5000       # pixels^2 — reject larger blobs
+  morph_kernel: 3              # morphological opening kernel size
+  roi_padding: 60              # pixels around predicted position for ROI
+
+# ===== Triangulation =====
+triangulation:
+  method: "orthogonal"         # "orthogonal" (quick) or "stereo" (calibrated)
+  # For orthogonal method: camera 0 (left) sees X,Z; camera 1 (right) sees Y,Z
+  # Pixels-to-meters conversion (calibrate by placing LED at known positions)
+  cam_left:
+    # Maps pixel coords to meters in cage frame
+    origin_px: [320, 240]      # pixel where cage origin appears
+    scale_x: 0.002             # meters per pixel in x direction
+    scale_z: -0.002            # meters per pixel in z direction (negative = up)
+  cam_right:
+    origin_px: [320, 240]
+    scale_y: 0.002
+    scale_z: -0.002
+
+# ===== State Estimation =====
+state:
+  filter_type: "ema"           # "ema" for exponential moving average
+  ema_alpha: 0.3               # smoothing: 0 = very smooth, 1 = raw
+  max_jump_m: 0.15             # reject position jumps larger than this (meters)
+  lost_frame_limit: 5          # frames without detection → unreliable
+
+# ===== Control =====
+control:
+  loop_rate_hz: 20             # outer loop frequency (Hz)
+  mode: 2                      # drone mode: 2 = onboard PID for pitch/roll
+
+  # Hover target position in cage frame (meters from cage origin)
+  target:
+    x: 0.5
+    y: 0.5
+    z: 0.5                     # 0.5 m hover height
+
+  # PID gains: X position error → roll setpoint
+  pid_x:
+    kp: 1.0
+    ki: 0.0
+    kd: 0.5
+    integral_limit: 2.0
+
+  # PID gains: Y position error → pitch setpoint
+  pid_y:
+    kp: 1.0
+    ki: 0.0
+    kd: 0.5
+    integral_limit: 2.0
+
+  # PID gains: Z position error → thrust adjustment
+  pid_z:
+    kp: 15.0
+    ki: 0.5
+    kd: 8.0
+    integral_limit: 30.0
+
+  # Output limits
+  max_pitch: 3.0               # max pitch setpoint magnitude
+  max_roll: 3.0                # max roll setpoint magnitude
+  base_thrust: 145             # hover thrust baseline (tune empirically!)
+  min_thrust: 80               # absolute minimum thrust
+  max_thrust: 200              # absolute maximum thrust
+  max_thrust_delta: 5          # max thrust change per control tick
+  max_angle_delta: 1.0         # max pitch/roll change per control tick
+
+  # Axis sign mapping (set to -1 to invert if drone moves wrong way)
+  axis_sign_x: 1               # maps +x error to +roll (or -roll if -1)
+  axis_sign_y: 1               # maps +y error to +pitch (or -pitch if -1)
+  axis_sign_z: 1               # maps +z error to +thrust (or -thrust if -1)
+
+# ===== Safety =====
+safety:
+  enabled: true
+
+  # Virtual cage boundaries — graduated zones (see safety.py)
+  # Zones are defined by position ranges on each axis:
+  #   SAFE:   [0.45, 0.55]   ≥45cm from wall
+  #   LEVEL1: [0.35, 0.65]   ≥35cm from wall
+  #   LEVEL2: [0.25, 0.75]   ≥25cm from wall
+  #   LEVEL3: [0.15, 0.85]   ≥15cm from wall
+  #   LEVEL4: [0.10, 0.90]   ≥10cm from wall
+  #   ESTOP:  outside [0.10, 0.90]  <10cm → kill motors
+  cage_size: 1.0               # physical cage dimension (meters)
+  margin_estop: 0.10           # E-stop: 10cm from wall
+
+  # Warning zone behavior
+  warning_pitch_clamp: 1.5     # tighter angle clamp in warning zone
+  warning_roll_clamp: 1.5
+  warning_rate_limit: 0.5      # tighter rate limit in warning zone
+
+  # Timeouts
+  vision_stale_ms: 200         # no vision update → hold & warn
+  vision_lost_ms: 500          # both cameras lost → E-stop
+  single_cam_fallback_ms: 500  # max time on one-camera fallback
+  comms_timeout_ms: 100        # max time for drone command response
+
+  # Angle limits (from drone IMU)
+  max_pitch_deg: 25.0          # E-stop if drone tilt exceeds this
+  max_roll_deg: 25.0
+
+  # Startup
+  takeoff_ramp_seconds: 2.0    # ramp thrust 0 → baseline over this time
+  min_altitude_for_control: 0.3 # start position hold above this height
+
+  # Thrust for safe hover hold (when vision lost briefly)
+  safe_hover_thrust: 140       # thrust to hold during vision loss
+
+# ===== Drone Connection =====
+comms:
+  host: "192.168.4.1"
+  port: 8080
+  connect_timeout_s: 5
+  recv_timeout_s: 0.1
+
+# ===== Onboard PID Gains (sent to ESP32 firmware) =====
+onboard_pid:
+  p_gain: 0.3
+  i_gain: 0.00002
+  d_gain: 5.0
+
+# ===== Logging =====
+logging:
+  enabled: true
+  log_dir: "logs"
+  log_to_console: true
+  log_to_csv: true
