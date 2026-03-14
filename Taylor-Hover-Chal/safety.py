@@ -41,6 +41,20 @@ def trigger_stop(reason: str = "manual"):
         except Exception as ex:
             print(f"[E-STOP] Warning: failed to send stop command to drone: {ex}")
 
+def _sigint_handler(sig, frame):
+    """
+    Ctrl+C: e-stop the drone then exit the process.
+    Restoring the default SIGINT handler before raising SystemExit means a
+    second Ctrl+C (if the TCP send hangs) will hard-kill immediately.
+    """
+    signal.signal(signal.SIGINT, signal.SIG_DFL)  # restore default so second Ctrl+C always works
+    trigger_stop("SIGINT")
+    raise SystemExit(0)
+
+def _sigterm_handler(sig, frame):
+    """SIGTERM: same pattern — e-stop then exit."""
+    trigger_stop("SIGTERM")
+    raise SystemExit(0)
 
 def register_signal_handlers():
     """

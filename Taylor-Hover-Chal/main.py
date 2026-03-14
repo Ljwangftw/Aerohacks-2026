@@ -25,11 +25,21 @@ from controller import run_hover
 # ---------------------------------------------------------------------------
 
 def verify_comms() -> bool:
-    """
-    Quick pre-flight comms check — read mode, pitch, and roll before arming.
-    If any call hangs or throws, we catch it and abort rather than proceeding.
-    Likely failure cause: not connected to drone's Wi-Fi network.
-    """
+#    Quick pre-flight comms check — read mode, pitch, and roll before arming.
+#    In DRY_RUN mode skips the real connection entirely (drone_rc.py connects at
+#    import time with no timeout, so importing it without a drone = indefinite block).
+
+    from config import DRY_RUN
+ 
+    if DRY_RUN:
+        print("[MAIN] DRY_RUN=True — skipping real comms check, using mock.")
+        from test_drone_rc import get_mode, get_pitch, get_roll
+        mode  = get_mode()
+        pitch = get_pitch()
+        roll  = get_roll()
+        print(f"[MAIN] Mock comms OK — mode:{mode}  pitch:{pitch:.2f}°  roll:{roll:.2f}°")
+        return True
+ 
     print("[MAIN] Verifying drone comms...")
     try:
         from drone_rc import get_mode, get_pitch, get_roll
@@ -42,7 +52,6 @@ def verify_comms() -> bool:
         print(f"[MAIN] Comms FAILED: {ex}")
         print("[MAIN] Check: are you connected to the drone's Wi-Fi network?")
         return False
-
 
 # ---------------------------------------------------------------------------
 # Entry point
