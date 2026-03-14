@@ -1,0 +1,7 @@
+# requirements.txt
+# Install with: pip install -r requirements.txt
+
+opencv-python>=4.8.0
+numpy>=1.24.0
+pynput>=1.7.6
+filterpy>=1.4.5   # optional — only needed if swapping cv2.KalmanFilter for filterpy
