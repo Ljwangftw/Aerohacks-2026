@@ -165,6 +165,7 @@ presets = dict(
 
 
 def create_capture(source = 0, fallback = None):
+
     '''source: <int> or '<int>|<filename>|synth [:<param_name>=<value> [:...]]'
     '''
     source = str(source).strip()

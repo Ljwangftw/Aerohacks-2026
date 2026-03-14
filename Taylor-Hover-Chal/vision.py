@@ -1,3 +1,4 @@
+from __future__ import annotations
 # vision.py
 # Computer vision pipeline — camera-based drone position estimation.
 # Stub implementation used during Test 1 (comms only).
