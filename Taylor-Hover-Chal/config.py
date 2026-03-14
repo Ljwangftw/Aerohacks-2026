@@ -2,6 +2,12 @@
 # All tunable constants live here — change these during testing without touching logic
 
 # ---------------------------------------------------------------------------
+# Dry run — set True to use drone_rc_mock instead of real drone_rc
+# Flip back to False before any real flight
+# ---------------------------------------------------------------------------
+DRY_RUN = True
+
+# ---------------------------------------------------------------------------
 # Network
 # ---------------------------------------------------------------------------
 DRONE_IP   = "192.168.4.1"

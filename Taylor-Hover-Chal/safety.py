@@ -6,8 +6,12 @@
 import signal
 import threading
 
-from drone_rc import emergency_stop, get_pitch, get_roll
-from config import MAX_PITCH_DEG, MAX_ROLL_DEG
+from config import MAX_PITCH_DEG, MAX_ROLL_DEG, DRY_RUN
+
+if DRY_RUN:
+    from test_drone_rc import emergency_stop, get_pitch, get_roll
+else:
+    from drone_rc import emergency_stop, get_pitch, get_roll
 
 # ---------------------------------------------------------------------------
 # Global stop flag
