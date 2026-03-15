@@ -32,16 +32,19 @@ if PY3:
 
 import numpy as np
 import cv2 as cv
-import setup_cameras
+
+import argparse
 
 # local module
 import video
-#from video import presets
-class Camera(object):
-    def __init__(self, video_src):
-        self.name = 'camera1'
-        self.cam_feed = video.create_capture(video_src, fallback=None)
+import threshold
+import setup_cameras
 
+class Camera(object):
+    def __init__(self, name, video_src):
+        self.name = name
+        self.cam_feed = video.create_capture(video_src, fallback=None)
+        cv.namedWindow(self.name)
 
 
 class App(object):
@@ -88,15 +91,22 @@ class App(object):
         img = cv.cvtColor(img, cv.COLOR_HSV2BGR)
         cv.imshow('hist', img)
 
-    def run(self):
+    def run_camshift(self):
         while True:
             _ret1, self.frame1 = self.cam_feed1.read()
+            cv.normalize(self.frame1, self.frame1, 0, 255, cv.NORM_MINMAX)
             _ret2, self.frame2 = self.cam_feed2.read()
             vis1 = self.frame1.copy()
-            if(self.frame2 is None):
+            if (self.frame2 is None):
                 print("")
             vis2 = self.frame2.copy()
             hsv1 = cv.cvtColor(self.frame1, cv.COLOR_BGR2HSV)
+            # https://stackoverflow.com/questions/61016954/controlling-contrast-and-brightness-of-video-stream-in-opencv-and-python
+            contrast = 50
+            brightness = 0
+            hsv1[:, :, 2] = np.clip(contrast * hsv1[:, :, 2] + brightness, 0, 255)
+            #hsv1 = cv.cvtColor(hsv1, cv.COLOR_HSV2BGR)
+
             hsv2 = cv.cvtColor(self.frame2, cv.COLOR_BGR2HSV)
             mask1 = cv.inRange(hsv1, np.array((0., 60., 32.)), np.array((180., 255., 255.)))
             mask2 = cv.inRange(hsv2, np.array((0., 60., 32.)), np.array((180., 255., 255.)))
@@ -105,7 +115,7 @@ class App(object):
                 x0, y0, x1, y1 = self.selection
                 hsv_roi = hsv1[y0:y1, x0:x1]
                 mask_roi = mask1[y0:y1, x0:x1]
-                hist = cv.calcHist( [hsv_roi], [0], mask_roi, [16], [0, 180] )
+                hist = cv.calcHist([hsv_roi], [0], mask_roi, [16], [0, 180])
                 cv.normalize(hist, hist, 0, 255, cv.NORM_MINMAX)
                 self.hist = hist.reshape(-1)
                 self.show_hist()
@@ -118,11 +128,11 @@ class App(object):
                 self.selection = None
                 prob = cv.calcBackProject([hsv1], [0], self.hist, [0, 180], 1)
                 prob &= mask1
-                term_crit = ( cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 1 )
+                term_crit = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 1)
                 track_box, self.track_window = cv.CamShift(prob, self.track_window, term_crit)
 
                 if self.show_backproj:
-                    vis1[:] = prob[...,np.newaxis]
+                    vis1[:] = prob[..., np.newaxis]
                 try:
                     cv.ellipse(vis1, track_box, (0, 0, 255), 2)
                 except:
@@ -137,6 +147,72 @@ class App(object):
             if ch == ord('b'):
                 self.show_backproj = not self.show_backproj
         cv.destroyAllWindows()
+    def run_optical_flow(self):
+        #parser = argparse.ArgumentParser(description='This sample demonstrates Lucas-Kanade Optical Flow calculation. \
+                                                      #The example file can be downloaded from: \
+                                                      #https://www.bogotobogo.com/python/OpenCV_Python/images/mean_shift_tracking/slow_traffic_small.mp4')
+        #parser.add_argument('image', type=str, help='path to image file')
+        #args = parser.parse_args()
+
+        #cap = cv.VideoCapture(args.image)
+
+        # params for ShiTomasi corner detection
+        feature_params = dict(maxCorners=100,
+                              qualityLevel=0.3,
+                              minDistance=7,
+                              blockSize=7)
+
+        # Parameters for lucas kanade optical flow
+        lk_params = dict(winSize=(15, 15),
+                         maxLevel=2,
+                         criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
+
+        # Create some random colors
+        color = np.random.randint(0, 255, (100, 3))
+
+        # Take first frame and find corners in it
+        ret, old_frame1 = self.cam_feed1.read()
+        old_gray = cv.cvtColor(old_frame1, cv.COLOR_BGR2GRAY)
+        p0 = cv.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+
+        # Create a mask image for drawing purposes
+        mask = np.zeros_like(old_frame1)
+
+        while (1):
+            ret, frame1 = self.cam_feed1.read()
+            if not ret:
+                print('No frames grabbed!')
+                break
+
+            frame_gray = cv.cvtColor(frame1, cv.COLOR_BGR2GRAY)
+
+            # calculate optical flow
+            p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
+
+            # Select good points
+            if p1 is not None:
+                good_new = p1[st == 1]
+                good_old = p0[st == 1]
+
+            # draw the tracks
+            for i, (new, old) in enumerate(zip(good_new, good_old)):
+                a, b = new.ravel()
+                c, d = old.ravel()
+                mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
+                frame1 = cv.circle(frame1, (int(a), int(b)), 5, color[i].tolist(), -1)
+            img = cv.add(frame1, mask)
+
+            cv.imshow('frame', img)
+            k = cv.waitKey(30) & 0xff
+            if k == 27:
+                break
+
+            # Now update the previous frame and previous points
+            old_gray = frame_gray.copy()
+            p0 = good_new.reshape(-1, 1, 2)
+
+        cv.destroyAllWindows()
+
 
 
 if __name__ == '__main__':
@@ -147,8 +223,10 @@ if __name__ == '__main__':
     #vid_path = "C:\\Users\\Manhands\\Documents\\Comp Sci\\McGill Aerohacks\\"
     vid_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))+"\\data\\"
     print( "video dir: " +vid_path)
-    vid_1 = "drone video long.mp4"
-    vid_2 = "drone video short.mp4"
+    #vid_1 = "drone video long.mp4"
+    #vid_2 = "drone video short.mp4"
+    vid_1 = "drone cam 1.mp4"
+    vid_2 = "drone cam 2.mp4"
 
     '''
     print("Enter video capture mode: \n [1] Video(default)\n [2] Live camera feed")
@@ -197,5 +275,17 @@ if __name__ == '__main__':
         #video_src2 = cameras[0]
         video_src2 = vid_path + vid_2
     
-    App(video_src1, video_src2).run()
+    #App(video_src1, video_src2).run_camshift()
+
+    #threshold.run_threshold_tester(video_src1)
+    red_low_hsv =(0, 148, 135)
+    red_high_hsv = (10, 255, 255)
+    # low_H:100, low_S:54, low_V :0
+    # high_H:140, high_S:255, high_V:255
+    blue_low_hsv =(100, 54, 0)
+    blue_high_hsv = (140, 255, 255)
+
+    threshold.run_threshold(video_src1, "red", red_low_hsv,red_high_hsv)
+    threshold.run_threshold(video_src1,"blue", blue_low_hsv,blue_high_hsv)
+
 
