@@ -36,7 +36,7 @@ import setup_cameras
 
 # local module
 import video
-from video import presets
+#from video import presets
 class Camera(object):
     def __init__(self, video_src):
         self.name = 'camera1'
@@ -149,15 +149,53 @@ if __name__ == '__main__':
     print( "video dir: " +vid_path)
     vid_1 = "drone video long.mp4"
     vid_2 = "drone video short.mp4"
+
+    '''
+    print("Enter video capture mode: \n [1] Video(default)\n [2] Live camera feed")
+    input = input().lower()
+    video = "video"
+    camera = "camera"
+   
+    if video in input or "1" in input or len(cameras) == 0:
+        print("Video selected")
+        try:
+            video_src1 = sys.argv[1]
+        except:
+            video_src1 = 0|vid_path + vid_1
+        try:
+            video_src2 = 1|sys.argv[2]
+        except:
+            video_src2 = vid_path + vid_2
+        App(video_src1, video_src2).run()
+    else:
+
+        if camera in input or "2" in input:
+            print("Camera selected")
+        else:
+            print("Input not recognised, using default (Video)")
+
+        try:
+            video_src1 = sys.argv[1]
+        except:
+            video_src1 = cameras[0]
+        try:
+            video_src2 = sys.argv[2]
+        except:
+            video_src2 = cameras[0]
+        App(video_src1, video_src2).run()
+
+
+    '''
     try:
         video_src1 = sys.argv[1]
     except:
-        video_src1 = cameras[0]
-        #video_src1 = vid_path + vid_1
+        #video_src1 = cameras[0]
+        video_src1 = vid_path + vid_1
     try:
         video_src2 = sys.argv[2]
     except:
-        video_src2 = cameras[1]
-        #video_src2 = vid_path + vid_2
-
+        #video_src2 = cameras[0]
+        video_src2 = vid_path + vid_2
+    
     App(video_src1, video_src2).run()
+

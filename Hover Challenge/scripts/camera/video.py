@@ -80,7 +80,7 @@ class VideoSynthBase(object):
 
     def isOpened(self):
         return True
-
+'''
 class Book(VideoSynthBase):
     def __init__(self, **kw):
         super(Book, self).__init__(**kw)
@@ -127,7 +127,7 @@ class Chess(VideoSynthBase):
 
         self.dist_coef = np.float64([-0.2, 0.1, 0, 0])
         self.t = 0
-
+    
     def draw_quads(self, img, quads, color = (0, 255, 0)):
         img_quads = cv.projectPoints(quads.reshape(-1, 3), self.rvec, self.tvec, self.K, self.dist_coef) [0]
         img_quads.shape = quads.shape[:2] + (2,)
@@ -163,7 +163,7 @@ presets = dict(
     cube = 'synth:class=cube:bg=pca_test1.jpg:noise=0.0:size=640x480'
 )
 
-
+'''
 def create_capture(source = 0, fallback = None):
 
     '''source: <int> or '<int>|<filename>|synth [:<param_name>=<value> [:...]]'
